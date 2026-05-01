@@ -18,7 +18,7 @@ def main():
     OUTPUT_PPT = r"testdata/image_matrix.pptx"
 
     PARAM_A = ["low", "mid", "high"]
-    PARAM_B = ["exp1", "exp2", "exp3", "exp4", "exp6"]
+    PARAM_B = ["exp1", "exp2", "exp3", "exp4", "exp6", "exp7"]
 
     SUPPLEMENT = {
         ("low", "exp1"): (0.12, 0.01),
@@ -439,29 +439,31 @@ def add_summary_table_slide(
 
     # ===================== 力值区域 (行 2 .. 1+n_rows) =====================
     force_start, force_end = 2, 1 + n_rows
+    text_value = "力值"
     if n_rows > 1:
         _set_merged_cell(
-            table, force_start, 0, force_end, 0, "力值", bold=True, font_size=12
+            table, force_start, 0, force_end, 0, text_value, bold=True, font_size=12
         )
     else:
-        _set_cell_text(table.cell(force_start, 0), "力值", bold=True, font_size=12)
+        _set_cell_text(table.cell(force_start, 0), text_value, bold=True, font_size=12)
 
     for i, a_val in enumerate(param_a_values):
         row_idx = force_start + i
         _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=12)
-        _set_cell_text(table.cell(row_idx, 2), "", font_size=10)
+        _set_cell_text(table.cell(row_idx, 2), "", font_size=12)
         for j, b_val in enumerate(param_b_values):
             info = supplement_data.get((a_val, b_val), ("", ""))
             _set_cell_text(table.cell(row_idx, 3 + j), info[0], font_size=12)
 
     # ===================== 长度区域 (行 2+n_rows .. 1+n_rows*2) =====================
     length_start, length_end = 2 + n_rows, 1 + n_rows * 2
+    text_value = "长度"
     if n_rows > 1:
         _set_merged_cell(
-            table, length_start, 0, length_end, 0, "长度", bold=True, font_size=12
+            table, length_start, 0, length_end, 0, text_value, bold=True, font_size=12
         )
     else:
-        _set_cell_text(table.cell(length_start, 0), "长度", bold=True, font_size=12)
+        _set_cell_text(table.cell(length_start, 0), text_value, bold=True, font_size=12)
 
     for i, a_val in enumerate(param_a_values):
         row_idx = length_start + i
