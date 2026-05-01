@@ -1,3 +1,4 @@
+from pptx.slide import Slide
 from pathlib import Path
 from pptx import Presentation, presentation
 from pptx.util import Inches, Pt
@@ -108,7 +109,7 @@ def _set_cell_text(
     text: str,
     bold: bool = False,
     font_size: float = 10,
-    alignment=PP_ALIGN.CENTER,
+    alignment: PP_ALIGN = PP_ALIGN.CENTER,
 ):
     """设置表格单元格文本、字体及对齐方式"""
     cell.vertical_anchor = MSO_ANCHOR.MIDDLE
@@ -137,7 +138,7 @@ def add_image_table_slide(
     if supplement_data is None:
         supplement_data = {}
 
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide: Slide = prs.slides.add_slide(prs.slide_layouts[6])
 
     slide_width: float = prs.slide_width / Inches(1)
     slide_height: float = prs.slide_height / Inches(1)  # ty:ignore[unsupported-operator]
@@ -302,7 +303,7 @@ def add_summary_table_slide(
     total_cols = 3 + n_cols
     total_rows = 2 + n_rows * 2 + 2  # 汇总表 + 列标题 + 力值 + 长度 + 结论 + 备注
 
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide: Slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide_width_emu = prs.slide_width  # 直接用 EMU，不引入魔数
     slide_height_emu = prs.slide_height  # noqa: F841
 
@@ -335,8 +336,8 @@ def add_summary_table_slide(
     table_shape = slide.shapes.add_table(
         total_rows,
         total_cols,
-        0,
-        table_top,  # left=0 贴边（EMU）
+        Inches(0),
+        table_top,
         slide_width_emu,  # 占满幻灯片宽度
         table_height,
     )
