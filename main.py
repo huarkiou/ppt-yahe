@@ -1,3 +1,4 @@
+from pptx.table import Table, _Cell
 from pptx.slide import Slide
 from pathlib import Path
 from pptx import Presentation, presentation
@@ -54,7 +55,7 @@ def main():
     print(f"✅ PPT 已保存: {OUTPUT_PPT}")
 
 
-def _apply_table_style(table):
+def _apply_table_style(table: Table):
     """去掉表格样式和所有填充，设置黑色细框线"""
     tbl = table._tbl
     tblPr = tbl.tblPr
@@ -105,7 +106,7 @@ def _apply_table_style(table):
 
 
 def _set_cell_text(
-    cell,
+    cell: _Cell,
     text: str,
     bold: bool = False,
     font_size: float = 10,
@@ -280,7 +281,7 @@ def add_image_table_slide(
 
 
 def add_summary_table_slide(
-    prs,
+    prs: presentation.Presentation,
     param_a_values: list[str],
     param_b_values: list[str],
     supplement_data: dict,  # {(a, b): (力值, 长度)}
