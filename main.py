@@ -55,6 +55,40 @@ def main():
     print(f"✅ PPT 已保存: {OUTPUT_PPT}")
 
 
+def _create_styled_table(
+    slide: Slide,
+    rows: int,
+    cols: int,
+    left: Inches,
+    top: Inches,
+    width: Inches,
+    height: Inches,
+) -> Table:
+    """创建表格并应用统一样式（黑色细框线、无填充），返回 Table 对象"""
+    table_shape = slide.shapes.add_table(rows, cols, left, top, width, height)
+    table = table_shape.table
+    _apply_table_style(table)
+    return table
+
+
+def _set_merged_cell(
+    table: Table,
+    r1: int,
+    c1: int,
+    r2: int,
+    c2: int,
+    text: str,
+    bold: bool = False,
+    font_size: float = 10,
+    alignment: PP_ALIGN = PP_ALIGN.CENTER,
+):
+    """合并单元格区域并设置文本"""
+    table.cell(r1, c1).merge(table.cell(r2, c2))
+    _set_cell_text(
+        table.cell(r1, c1), text, bold=bold, font_size=font_size, alignment=alignment
+    )
+
+
 def _apply_table_style(table: Table):
     """去掉表格样式和所有填充，设置黑色细框线"""
     tbl = table._tbl
@@ -118,6 +152,22 @@ def _set_cell_text(
     run.font.bold = bold
 
 
+def _col_offset_inches(table: Table, col_idx: int) -> float:
+    """返回从表格左边界到第 col_idx 列左边界的累计宽度（英寸）"""
+    total = 0.0
+    for c in range(col_idx):
+        total += table.columns[c].width / Inches(1)
+    return total
+
+
+def _row_offset_inches(table: Table, row_idx: int) -> float:
+    """返回从表格上边界到第 row_idx 行上边界的累计高度（英寸）"""
+    total = 0.0
+    for r in range(row_idx):
+        total += table.rows[r].height / Inches(1)
+    return total
+
+
 def add_image_table_slide(
     prs: presentation.Presentation,
     image_dir: str,
@@ -170,11 +220,12 @@ def add_image_table_slide(
     padding = 0.08
     square_size = min(img_area_width, img_area_height) - 2 * padding
 
-    # ---------------------------- 创建表格 ----------------------------
+    # ---------------------------- 创建表格（使用辅助函数）----------------------------
     total_cols = 1 + total_data_cols
     total_rows = 1 + total_data_rows
 
-    table_shape = slide.shapes.add_table(
+    table = _create_styled_table(
+        slide,
         total_rows,
         total_cols,
         Inches(margin_lr),
@@ -182,8 +233,10 @@ def add_image_table_slide(
         Inches(usable_width),
         Inches(usable_height),
     )
-    table = table_shape.table
-    _apply_table_style(table)
+
+    # 表格起点的英寸值（shape 的 left / top 就是 margin_lr / margin_tb）
+    table_left = margin_lr
+    table_top = margin_tb
 
     # 列宽
     table.columns[0].width = Inches(header_col_width)
@@ -198,20 +251,22 @@ def add_image_table_slide(
         table.rows[base + 1].height = Inches(title_row_height)  # 标题行
         table.rows[base + 2].height = Inches(data_row_height)  # 数据行
 
-    # ---------------------------- 标题 ----------------------------
+    # ---------------------------- 标题（使用 _set_merged_cell）----------------------------
     _set_cell_text(table.cell(0, 0), top_left_label, bold=True, font_size=11)
 
     for j in range(n_cols):
         col_a = 1 + j * 2
         col_b = col_a + 1
-        table.cell(0, col_a).merge(table.cell(0, col_b))
-        _set_cell_text(table.cell(0, col_a), param_b_values[j], bold=True, font_size=11)
+        _set_merged_cell(
+            table, 0, col_a, 0, col_b, param_b_values[j], bold=True, font_size=11
+        )
 
     for i in range(n_rows):
         row_a = 1 + i * 3
         row_b = row_a + 2
-        table.cell(row_a, 0).merge(table.cell(row_b, 0))
-        _set_cell_text(table.cell(row_a, 0), param_a_values[i], bold=True, font_size=11)
+        _set_merged_cell(
+            table, row_a, 0, row_b, 0, param_a_values[i], bold=True, font_size=11
+        )
 
     # ---------------------------- 合并单元格 & 填写内容 ----------------------------
     for i, a_val in enumerate(param_a_values):
@@ -222,7 +277,7 @@ def add_image_table_slide(
             col_a = 1 + j * 2
             col_b = col_a + 1
 
-            # 图片行：两列合并
+            # 图片行：两列合并（纯合并，不设文本，留给图片）
             table.cell(img_row, col_a).merge(table.cell(img_row, col_b))
 
             # 标题行：两列独立，填固定标题
@@ -235,10 +290,7 @@ def add_image_table_slide(
             _set_cell_text(table.cell(data_row, col_a), left_text, font_size=8)
             _set_cell_text(table.cell(data_row, col_b), right_text, font_size=8)
 
-    # ---------------------------- 放置图片 ----------------------------
-    data_origin_left = margin_lr + header_col_width
-    data_origin_top = margin_tb + header_row_height
-
+    # ---------------------------- 放置图片（利用表格列宽/行高定位）----------------------------
     for i, a_val in enumerate(param_a_values):
         for j, b_val in enumerate(param_b_values):
             filename = filename_template.format(a=a_val, b=b_val)
@@ -258,14 +310,23 @@ def add_image_table_slide(
                 disp_h = square_size
                 disp_w = square_size * aspect
 
-            offset_x = (img_area_width - disp_w) / 2
-            offset_y = (img_area_height - disp_h) / 2
+            img_row = 1 + i * 3
+            col_a = 1 + j * 2
 
-            block_left = j * img_area_width
-            block_top = i * three_row_height
+            # 通过累加列宽/行高获得单元格在幻灯片上的实际坐标
+            cell_left = table_left + _col_offset_inches(table, col_a)
+            cell_top = table_top + _row_offset_inches(table, img_row)
+            # 图片行合并了两列，宽度取两列之和
+            cell_w = (
+                table.columns[col_a].width + table.columns[col_a + 1].width
+            ) / Inches(1)
+            cell_h = table.rows[img_row].height / Inches(1)
 
-            left = Inches(data_origin_left + block_left + offset_x)
-            top = Inches(data_origin_top + block_top + offset_y)
+            offset_x = (cell_w - disp_w) / 2
+            offset_y = (cell_h - disp_h) / 2
+
+            left = Inches(cell_left + offset_x)
+            top = Inches(cell_top + offset_y)
 
             slide.shapes.add_picture(
                 str(img_path),
@@ -318,10 +379,7 @@ def add_summary_table_slide(
     # ---- 表格占满幻灯片宽度 ----
     # 前3列固定英寸宽度，余下给数据列均分
     fixed = header_col_width + param_col_width + criteria_col_width
-    # 用 Inches 算出总表宽后得出数据列英寸宽
-    total_table_inches = slide_width_emu / Inches(
-        1
-    )  # 通过 Inches(1) 得到一英寸对应的 EMU
+    total_table_inches = slide_width_emu / Inches(1)
     data_col_width = max(0, (total_table_inches - fixed) / n_cols) if n_cols else 0
 
     table_top = Inches(0.7) if title else Inches(0.4)
@@ -329,16 +387,16 @@ def add_summary_table_slide(
         data_row_height + header_row_height + (total_rows - 2) * data_row_height
     )
 
-    table_shape = slide.shapes.add_table(
+    # 使用辅助函数创建表格
+    table = _create_styled_table(
+        slide,
         total_rows,
         total_cols,
         Inches(0),
         table_top,
-        slide_width_emu,  # 占满幻灯片宽度
+        slide_width_emu,
         table_height,
     )
-    table = table_shape.table
-    _apply_table_style(table)
 
     # 列宽
     table.columns[0].width = Inches(header_col_width)
@@ -353,9 +411,8 @@ def add_summary_table_slide(
     for r in range(2, total_rows):
         table.rows[r].height = Inches(data_row_height)
 
-    # ===================== 汇总表标题行（第0行） =====================
-    table.cell(0, 0).merge(table.cell(0, total_cols - 1))
-    _set_cell_text(table.cell(0, 0), "汇总表", bold=True, font_size=14)
+    # ===================== 汇总表标题行（第0行）使用 _set_merged_cell =====================
+    _set_merged_cell(table, 0, 0, 0, total_cols - 1, "汇总表", bold=True, font_size=14)
 
     # ===================== 列标题行（第1行） =====================
     _set_cell_text(table.cell(1, 0), "类别", bold=True, font_size=11)
@@ -366,9 +423,13 @@ def add_summary_table_slide(
 
     # ===================== 力值区域 (行 2 .. 1+n_rows) =====================
     force_start, force_end = 2, 1 + n_rows
-    _set_cell_text(table.cell(force_start, 0), "力值", bold=True, font_size=11)
     if n_rows > 1:
-        table.cell(force_start, 0).merge(table.cell(force_end, 0))
+        _set_merged_cell(
+            table, force_start, 0, force_end, 0, "力值", bold=True, font_size=11
+        )
+    else:
+        _set_cell_text(table.cell(force_start, 0), "力值", bold=True, font_size=11)
+
     for i, a_val in enumerate(param_a_values):
         row_idx = force_start + i
         _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=11)
@@ -379,9 +440,13 @@ def add_summary_table_slide(
 
     # ===================== 长度区域 (行 2+n_rows .. 1+n_rows*2) =====================
     length_start, length_end = 2 + n_rows, 1 + n_rows * 2
-    _set_cell_text(table.cell(length_start, 0), "长度", bold=True, font_size=11)
     if n_rows > 1:
-        table.cell(length_start, 0).merge(table.cell(length_end, 0))
+        _set_merged_cell(
+            table, length_start, 0, length_end, 0, "长度", bold=True, font_size=11
+        )
+    else:
+        _set_cell_text(table.cell(length_start, 0), "长度", bold=True, font_size=11)
+
     for i, a_val in enumerate(param_a_values):
         row_idx = length_start + i
         _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=11)
@@ -393,14 +458,14 @@ def add_summary_table_slide(
     # ===================== 结论 =====================
     conclusion_row = 2 + n_rows * 2
     _set_cell_text(table.cell(conclusion_row, 0), "结论", bold=True, font_size=11)
-    table.cell(conclusion_row, 1).merge(table.cell(conclusion_row, total_cols - 1))
-    _set_cell_text(table.cell(conclusion_row, 1), "", font_size=10)
+    _set_merged_cell(
+        table, conclusion_row, 1, conclusion_row, total_cols - 1, "", font_size=10
+    )
 
     # ===================== 备注 =====================
     remark_row = conclusion_row + 1
     _set_cell_text(table.cell(remark_row, 0), "备注", bold=True, font_size=11)
-    table.cell(remark_row, 1).merge(table.cell(remark_row, total_cols - 1))
-    _set_cell_text(table.cell(remark_row, 1), "", font_size=10)
+    _set_merged_cell(table, remark_row, 1, remark_row, total_cols - 1, "", font_size=10)
 
 
 if __name__ == "__main__":
