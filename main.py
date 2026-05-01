@@ -148,6 +148,7 @@ def _set_cell_text(
     p.alignment = alignment
     run = p.add_run()
     run.text = text
+    run.font.name = "微软雅黑"
     run.font.size = Pt(font_size)
     run.font.bold = bold
 
