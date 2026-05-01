@@ -21,13 +21,14 @@ def main():
     PARAM_B = ["exp1", "exp2", "exp3", "exp4"]
 
     SUPPLEMENT = {
-        ("low", "exp1"): ("0.12", "±0.01"),
-        ("low", "exp2"): ("0.34", "±0.02"),
-        ("low", "exp3"): ("0.14", "±0.03"),
-        ("low", "exp4"): ("0.33", "±0.04"),
-        ("mid", "exp1"): ("0.56", "±0.03"),
-        ("high", "exp4"): ("0.78", "±0.01"),
+        ("low", "exp1"): (0.12, 0.01),
+        ("low", "exp2"): (0.34, 0.02),
+        ("low", "exp3"): (0.14, 0.03),
+        ("low", "exp4"): (0.33, 0.04),
+        ("mid", "exp1"): (0.56, 0.03),
+        ("high", "exp4"): (0.78, 0.01),
     }
+    SUPPLEMENT = _convert_supplement_to_str(SUPPLEMENT)
 
     prs = Presentation()
     prs.slide_width = Inches(DEFAULT_SLIDE_WIDTH_INCHES)
@@ -53,6 +54,13 @@ def main():
 
     prs.save(OUTPUT_PPT)
     print(f"✅ PPT 已保存: {OUTPUT_PPT}")
+
+
+def _convert_supplement_to_str(
+    data: dict[tuple[str, str], tuple[int | float, int | float]],
+) -> dict[tuple[str, str], tuple[str, str]]:
+    """将数值型补充数据转换为字符串格式（第2项前加 ±）"""
+    return {k: (str(v[0]), f"{v[1]}") for k, v in data.items()}
 
 
 def _create_styled_table(
@@ -178,7 +186,7 @@ def add_image_table_slide(
     top_left_label: str = "",
     header_col_width: float = 1.2,
     header_row_height: float = 0.5,
-    supplement_data: dict | None = None,
+    supplement_data: dict[tuple[str, str], tuple[str, str]] | None = None,
     supp_row_ratio: float = 0.30,
 ):
     image_dir: Path = Path(image_dir)
@@ -345,7 +353,7 @@ def add_summary_table_slide(
     prs: presentation.Presentation,
     param_a_values: list[str],
     param_b_values: list[str],
-    supplement_data: dict,  # {(a, b): (力值, 长度)}
+    supplement_data: dict[tuple[str, str], tuple[str, str]] | None = None,
     header_col_width: float = 0.9,
     param_col_width: float = 1.0,
     criteria_col_width: float = 1.2,
@@ -355,6 +363,8 @@ def add_summary_table_slide(
     """
     追加一页汇总表
     """
+    if supplement_data is None:
+        supplement_data = {}
 
     n_rows = len(param_a_values)
     n_cols = len(param_b_values)
