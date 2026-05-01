@@ -191,7 +191,7 @@ def add_image_table_slide(
     slide_height: float = prs.slide_height / Inches(1)  # ty:ignore[unsupported-operator]
 
     margin_lr = 0.0
-    margin_tb = 0.3
+    margin_tb = 0.5
     usable_width = slide_width - 2 * margin_lr
     usable_height = slide_height - 2 * margin_tb
 
