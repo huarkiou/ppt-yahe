@@ -188,6 +188,7 @@ def add_image_table_slide(
     header_row_height: float = 0.5,
     supplement_data: dict[tuple[str, str], tuple[str, str]] | None = None,
     supp_row_ratio: float = 0.30,
+    image_fill_uniform: bool = False,
 ):
     image_dir: Path = Path(image_dir)
     if supplement_data is None:
@@ -227,7 +228,9 @@ def add_image_table_slide(
     img_area_height = img_row_height
 
     padding = Pt(1).inches
-    square_size = min(img_area_width, img_area_height) - 2 * padding
+    avail_w = img_area_width - 2 * padding
+    avail_h = img_area_height - 2 * padding
+    square_size = min(avail_w, avail_h)
 
     # ---------------------------- 创建表格（使用辅助函数）----------------------------
     total_cols = 1 + total_data_cols
@@ -321,12 +324,21 @@ def add_image_table_slide(
                 orig_w, orig_h = im.size
             aspect = orig_w / orig_h
 
-            if aspect >= 1:
-                disp_w = square_size
-                disp_h = square_size / aspect
+            if image_fill_uniform:
+                if aspect >= 1:
+                    disp_w = square_size
+                    disp_h = square_size / aspect
+                else:
+                    disp_h = square_size
+                    disp_w = square_size * aspect
             else:
-                disp_h = square_size
-                disp_w = square_size * aspect
+                # 保持长宽比，填满可用矩形区域
+                if avail_w / avail_h >= aspect:
+                    disp_h = avail_h  # 高度受限
+                    disp_w = avail_h * aspect
+                else:
+                    disp_w = avail_w  # 宽度受限
+                    disp_h = avail_w / aspect
 
             img_row = 1 + i * 3
             col_a = 1 + j * 2
