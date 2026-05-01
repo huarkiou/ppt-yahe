@@ -18,7 +18,7 @@ def main():
     OUTPUT_PPT = r"testdata/image_matrix.pptx"
 
     PARAM_A = ["low", "mid", "high"]
-    PARAM_B = ["exp1", "exp2", "exp3", "exp4"]
+    PARAM_B = ["exp1", "exp2", "exp3", "exp4", "exp6"]
 
     SUPPLEMENT = {
         ("low", "exp1"): (0.12, 0.01),
@@ -182,7 +182,7 @@ def add_image_table_slide(
     image_dir: str,
     param_a_values: list[str],
     param_b_values: list[str],
-    filename_template: str = "{a}_{b}.png",
+    filename_template: str = "{a}_{b}",
     top_left_label: str = "",
     header_col_width: float = 1.2,
     header_row_height: float = 0.5,
@@ -226,7 +226,7 @@ def add_image_table_slide(
     img_area_width = sub_cell_width * 2
     img_area_height = img_row_height
 
-    padding = 0.08
+    padding = Pt(1).inches
     square_size = min(img_area_width, img_area_height) - 2 * padding
 
     # ---------------------------- 创建表格（使用辅助函数）----------------------------
@@ -308,8 +308,13 @@ def add_image_table_slide(
         for j, b_val in enumerate(param_b_values):
             filename = filename_template.format(a=a_val, b=b_val)
             img_path = image_dir / filename
-            if not img_path.exists():
-                print(f"⚠️ 图片不存在，跳过 — {img_path}")
+            for suffix in (".png", ".jpg"):
+                candidate = img_path.with_suffix(suffix)
+                if candidate.exists():
+                    img_path = candidate
+                    break
+            else:
+                print(f"⚠️ 跳过不存在的图片: {img_path}.[png|jpg]")
                 continue
 
             with Image.open(img_path) as im:
