@@ -11,6 +11,34 @@ DEFAULT_SLIDE_WIDTH_INCHES = 10.0
 DEFAULT_SLIDE_HEIGHT_INCHES = 7.5
 
 
+def main():
+    IMAGE_DIR = r"testdata/images"
+    OUTPUT_PPT = r"testdata/image_matrix.pptx"
+
+    PARAM_A = ["low", "mid", "high"]
+    PARAM_B = ["exp1", "exp2", "exp3", "exp4"]
+
+    SUPPLEMENT = {
+        ("low", "exp1"): ("0.12", "±0.01"),
+        ("low", "exp2"): ("0.34", "±0.02"),
+        ("low", "exp3"): ("0.14", "±0.03"),
+        ("low", "exp4"): ("0.33", "±0.04"),
+        ("mid", "exp1"): ("0.56", "±0.03"),
+        ("high", "exp4"): ("0.78", "±0.01"),
+    }
+
+    generate_image_matrix_ppt(
+        image_dir=IMAGE_DIR,
+        output_ppt=OUTPUT_PPT,
+        param_a_values=PARAM_A,
+        param_b_values=PARAM_B,
+        filename_template="{a}_{b}.png",
+        top_left_label="卧槽牛逼",
+        supplement_data=SUPPLEMENT,
+        supp_row_ratio=0.30,
+    )
+
+
 def _apply_table_style(table):
     """去掉表格样式和所有填充，设置黑色细框线"""
     tbl = table._tbl
@@ -242,28 +270,4 @@ def generate_image_matrix_ppt(
 
 # ========================= 使用示例 =========================
 if __name__ == "__main__":
-    IMAGE_DIR = r"testdata/images"
-    OUTPUT_PPT = r"testdata/image_matrix.pptx"
-
-    PARAM_A = ["low", "mid", "high"]
-    PARAM_B = ["exp1", "exp2", "exp3", "exp4"]
-
-    SUPPLEMENT = {
-        ("low", "exp1"): ("0.12", "±0.01"),
-        ("low", "exp2"): ("0.34", "±0.02"),
-        ("low", "exp3"): ("0.14", "±0.03"),
-        ("low", "exp4"): ("0.33", "±0.04"),
-        ("mid", "exp1"): ("0.56", "±0.03"),
-        ("high", "exp4"): ("0.78", "±0.01"),
-    }
-
-    generate_image_matrix_ppt(
-        image_dir=IMAGE_DIR,
-        output_ppt=OUTPUT_PPT,
-        param_a_values=PARAM_A,
-        param_b_values=PARAM_B,
-        filename_template="{a}_{b}.png",
-        top_left_label="卧槽牛逼",
-        supplement_data=SUPPLEMENT,
-        supp_row_ratio=0.30,
-    )
+    main()
