@@ -1,6 +1,6 @@
 from pathlib import Path
-from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx import Presentation, presentation
+from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.oxml.ns import qn
 from lxml import etree  # ty:ignore[unresolved-import]
@@ -27,9 +27,20 @@ def main():
         ("high", "exp4"): ("0.78", "±0.01"),
     }
 
-    generate_image_matrix_ppt(
+    prs = Presentation()
+    prs.slide_width = Inches(DEFAULT_SLIDE_WIDTH_INCHES)
+    prs.slide_height = Inches(DEFAULT_SLIDE_HEIGHT_INCHES)
+
+    add_summary_table_slide(
+        prs,
+        param_a_values=PARAM_A,
+        param_b_values=PARAM_B,
+        supplement_data=SUPPLEMENT,
+    )
+
+    add_image_table_slide(
+        prs,
         image_dir=IMAGE_DIR,
-        output_ppt=OUTPUT_PPT,
         param_a_values=PARAM_A,
         param_b_values=PARAM_B,
         filename_template="{a}_{b}.png",
@@ -37,6 +48,9 @@ def main():
         supplement_data=SUPPLEMENT,
         supp_row_ratio=0.30,
     )
+
+    prs.save(OUTPUT_PPT)
+    print(f"✅ PPT 已保存: {OUTPUT_PPT}")
 
 
 def _apply_table_style(table):
@@ -107,9 +121,9 @@ def _set_cell_text(
     run.font.bold = bold
 
 
-def generate_image_matrix_ppt(
+def add_image_table_slide(
+    prs: presentation.Presentation,
     image_dir: str,
-    output_ppt: str,
     param_a_values: list[str],
     param_b_values: list[str],
     filename_template: str = "{a}_{b}.png",
@@ -123,11 +137,10 @@ def generate_image_matrix_ppt(
     if supplement_data is None:
         supplement_data = {}
 
-    prs = Presentation()
     slide = prs.slides.add_slide(prs.slide_layouts[6])
 
-    slide_width = DEFAULT_SLIDE_WIDTH_INCHES
-    slide_height = DEFAULT_SLIDE_HEIGHT_INCHES
+    slide_width = prs.slide_width / 914400  # EMU → 英寸
+    slide_height = prs.slide_height / 914400  # EMU → 英寸
 
     margin_lr = 0.0
     margin_tb = 0.3
@@ -264,10 +277,136 @@ def generate_image_matrix_ppt(
                 width=Inches(disp_w),
             )
 
-    prs.save(output_ppt)
-    print(f"✅ PPT 已保存: {output_ppt}")
+
+def add_summary_table_slide(
+    prs,
+    param_a_values: list[str],
+    param_b_values: list[str],
+    supplement_data: dict,  # {(a, b): (力值, 长度)}
+    header_col_width: float = 0.9,
+    param_col_width: float = 1.0,
+    criteria_col_width: float = 1.2,
+    header_row_height: float = 0.5,
+    data_row_height: float = 0.35,
+    title: str = "",
+) -> None:
+    """
+    追加一页汇总表，表格宽度占满幻灯片。
+    行：汇总表(合并) | 列标题 | 力值(n行) | 长度(n行) | 结论 | 备注
+    列：类别 | 参数 | 评判标准 | B1 | B2 | ...
+    依赖：_set_cell_text(table.cell, text, bold, font_size) 已在外部定义。
+    """
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN
+
+    n_rows = len(param_a_values)
+    n_cols = len(param_b_values)
+    total_cols = 3 + n_cols
+    total_rows = 2 + n_rows * 2 + 2  # 汇总表 + 列标题 + 力值 + 长度 + 结论 + 备注
+
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide_width_emu = prs.slide_width  # 直接用 EMU，不引入魔数
+    slide_height_emu = prs.slide_height
+
+    # ---- 幻灯片级可选标题 ----
+    if title:
+        title_box = slide.shapes.add_textbox(
+            Inches(0.3), Inches(0.15), slide_width_emu - Inches(0.6), Inches(0.4)
+        )
+        tf = title_box.text_frame
+        tf.text = title
+        p = tf.paragraphs[0]
+        p.font.size = Pt(16)
+        p.font.bold = True
+        p.alignment = PP_ALIGN.CENTER
+
+    # ---- 表格占满幻灯片宽度 ----
+    # 前3列固定英寸宽度，余下给数据列均分
+    fixed = header_col_width + param_col_width + criteria_col_width
+    # 用 Inches 算出总表宽后得出数据列英寸宽
+    total_table_inches = slide_width_emu / Inches(
+        1
+    )  # 通过 Inches(1) 得到一英寸对应的 EMU
+    data_col_width = max(0, (total_table_inches - fixed) / n_cols) if n_cols else 0
+
+    table_top = Inches(0.7) if title else Inches(0.4)
+    table_height = Inches(
+        data_row_height + header_row_height + (total_rows - 2) * data_row_height
+    )
+
+    table_shape = slide.shapes.add_table(
+        total_rows,
+        total_cols,
+        0,
+        table_top,  # left=0 贴边（EMU）
+        slide_width_emu,  # 占满幻灯片宽度
+        table_height,
+    )
+    table = table_shape.table
+    _apply_table_style(table)
+
+    # 列宽
+    table.columns[0].width = Inches(header_col_width)
+    table.columns[1].width = Inches(param_col_width)
+    table.columns[2].width = Inches(criteria_col_width)
+    for c in range(3, total_cols):
+        table.columns[c].width = Inches(data_col_width)
+
+    # 行高
+    table.rows[0].height = Inches(data_row_height * 1.2)  # 汇总表行稍高
+    table.rows[1].height = Inches(header_row_height)
+    for r in range(2, total_rows):
+        table.rows[r].height = Inches(data_row_height)
+
+    # ===================== 汇总表标题行（第0行） =====================
+    table.cell(0, 0).merge(table.cell(0, total_cols - 1))
+    _set_cell_text(table.cell(0, 0), "汇总表", bold=True, font_size=14)
+
+    # ===================== 列标题行（第1行） =====================
+    _set_cell_text(table.cell(1, 0), "类别", bold=True, font_size=11)
+    _set_cell_text(table.cell(1, 1), "参数", bold=True, font_size=11)
+    _set_cell_text(table.cell(1, 2), "评判标准", bold=True, font_size=11)
+    for j, b_val in enumerate(param_b_values):
+        _set_cell_text(table.cell(1, 3 + j), b_val, bold=True, font_size=11)
+
+    # ===================== 力值区域 (行 2 .. 1+n_rows) =====================
+    force_start, force_end = 2, 1 + n_rows
+    _set_cell_text(table.cell(force_start, 0), "力值", bold=True, font_size=11)
+    if n_rows > 1:
+        table.cell(force_start, 0).merge(table.cell(force_end, 0))
+    for i, a_val in enumerate(param_a_values):
+        row_idx = force_start + i
+        _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=11)
+        _set_cell_text(table.cell(row_idx, 2), "", font_size=10)
+        for j, b_val in enumerate(param_b_values):
+            info = supplement_data.get((a_val, b_val), ("", ""))
+            _set_cell_text(table.cell(row_idx, 3 + j), info[0], font_size=10)
+
+    # ===================== 长度区域 (行 2+n_rows .. 1+n_rows*2) =====================
+    length_start, length_end = 2 + n_rows, 1 + n_rows * 2
+    _set_cell_text(table.cell(length_start, 0), "长度", bold=True, font_size=11)
+    if n_rows > 1:
+        table.cell(length_start, 0).merge(table.cell(length_end, 0))
+    for i, a_val in enumerate(param_a_values):
+        row_idx = length_start + i
+        _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=11)
+        _set_cell_text(table.cell(row_idx, 2), "", font_size=10)
+        for j, b_val in enumerate(param_b_values):
+            info = supplement_data.get((a_val, b_val), ("", ""))
+            _set_cell_text(table.cell(row_idx, 3 + j), info[1], font_size=10)
+
+    # ===================== 结论 =====================
+    conclusion_row = 2 + n_rows * 2
+    _set_cell_text(table.cell(conclusion_row, 0), "结论", bold=True, font_size=11)
+    table.cell(conclusion_row, 1).merge(table.cell(conclusion_row, total_cols - 1))
+    _set_cell_text(table.cell(conclusion_row, 1), "", font_size=10)
+
+    # ===================== 备注 =====================
+    remark_row = conclusion_row + 1
+    _set_cell_text(table.cell(remark_row, 0), "备注", bold=True, font_size=11)
+    table.cell(remark_row, 1).merge(table.cell(remark_row, total_cols - 1))
+    _set_cell_text(table.cell(remark_row, 1), "", font_size=10)
 
 
-# ========================= 使用示例 =========================
 if __name__ == "__main__":
     main()
