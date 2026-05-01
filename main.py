@@ -91,32 +91,12 @@ def generate_image_matrix_ppt(
     supplement_data: dict | None = None,
     supp_row_ratio: float = 0.30,
 ):
-    """
-    生成一页 PPT，主体为一个表格：
-      - 每个 (a, b) 对应一个 2 行 × 2 列 的子区域（但图片行两列合并）：
-          · 图片行：图片居中（跨已合并的 2 列）
-          · 补充行：左右两个独立小格，用于补充信息
-      - 所有图片的外接正方形包围盒大小统一。
-
-    Args:
-        image_dir:           图片所在目录
-        output_ppt:          输出 PPT 文件路径（.pptx）
-        param_a_values:      参数 a 取值列表（决定行组数）
-        param_b_values:      参数 b 取值列表（决定列组数）
-        filename_template:   文件名模板，如 "{a}_{b}.png"
-        top_left_label:      表格左上角单元格文本（默认空）
-        header_col_width:    行标题列宽度（英寸）
-        header_row_height:   列标题行高度（英寸）
-        supplement_data:     补充信息字典，key 为 (a_val, b_val) 元组，
-                             value 为 (左格文本, 右格文本) 元组；无数据则留空
-        supp_row_ratio:      补充行占每组 2 行总高的比例（0~1），默认 0.30
-    """
     image_dir: Path = Path(image_dir)
     if supplement_data is None:
         supplement_data = {}
 
     prs = Presentation()
-    slide = prs.slides.add_slide(prs.slide_layouts[6])  # 空白版式
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
 
     slide_width = DEFAULT_SLIDE_WIDTH_INCHES
     slide_height = DEFAULT_SLIDE_HEIGHT_INCHES
@@ -128,25 +108,24 @@ def generate_image_matrix_ppt(
 
     n_rows = len(param_a_values)
     n_cols = len(param_b_values)
-
     if n_rows == 0 or n_cols == 0:
         raise ValueError("参数列表不能为空")
 
-    # 数据区尺寸
     data_area_width = usable_width - header_col_width
     data_area_height = usable_height - header_row_height
 
     total_data_cols = n_cols * 2  # 每个 b 占 2 小列
-    total_data_rows = n_rows * 2  # 每个 a 占 2 小行
+    total_data_rows = n_rows * 3  # 每个 a 占 3 小行（图片 + 标题 + 数据）
 
     sub_cell_width = data_area_width / total_data_cols
     sub_cell_height = data_area_height / total_data_rows
 
-    two_row_height = 2 * sub_cell_height
-    supp_row_height = two_row_height * supp_row_ratio
-    img_row_height = two_row_height - supp_row_height
+    three_row_height = 3 * sub_cell_height
+    supp_total_height = three_row_height * supp_row_ratio
+    img_row_height = three_row_height - supp_total_height
+    title_row_height = supp_total_height / 2  # 标题行
+    data_row_height = supp_total_height / 2  # 数据行
 
-    # 图片区域尺寸（跨 2 小列 × 图片行高）
     img_area_width = sub_cell_width * 2
     img_area_height = img_row_height
 
@@ -154,8 +133,8 @@ def generate_image_matrix_ppt(
     square_size = min(img_area_width, img_area_height) - 2 * padding
 
     # ---------------------------- 创建表格 ----------------------------
-    total_cols = 1 + total_data_cols  # 1 行标题列 + 数据列
-    total_rows = 1 + total_data_rows  # 1 列标题行 + 数据行
+    total_cols = 1 + total_data_cols
+    total_rows = 1 + total_data_rows
 
     table_shape = slide.shapes.add_table(
         total_rows,
@@ -176,45 +155,49 @@ def generate_image_matrix_ppt(
     # 行高
     table.rows[0].height = Inches(header_row_height)
     for i in range(n_rows):
-        table.rows[1 + i * 2].height = Inches(img_row_height)  # 图片行
-        table.rows[1 + i * 2 + 1].height = Inches(supp_row_height)  # 补充行
+        base = 1 + i * 3
+        table.rows[base].height = Inches(img_row_height)  # 图片行
+        table.rows[base + 1].height = Inches(title_row_height)  # 标题行
+        table.rows[base + 2].height = Inches(data_row_height)  # 数据行
 
     # ---------------------------- 标题 ----------------------------
     _set_cell_text(table.cell(0, 0), top_left_label, bold=True, font_size=11)
 
-    # 列标题：每 2 列合并
     for j in range(n_cols):
         col_a = 1 + j * 2
         col_b = col_a + 1
         table.cell(0, col_a).merge(table.cell(0, col_b))
         _set_cell_text(table.cell(0, col_a), param_b_values[j], bold=True, font_size=11)
 
-    # 行标题：每 2 行合并（图片行 + 补充行为一组）
     for i in range(n_rows):
-        row_a = 1 + i * 2
-        row_b = row_a + 1
+        row_a = 1 + i * 3
+        row_b = row_a + 2
         table.cell(row_a, 0).merge(table.cell(row_b, 0))
         _set_cell_text(table.cell(row_a, 0), param_a_values[i], bold=True, font_size=11)
 
-    # ---------------------------- 合并图片行单元格 & 填写补充信息 ----------------------------
+    # ---------------------------- 合并单元格 & 填写内容 ----------------------------
     for i, a_val in enumerate(param_a_values):
         for j, b_val in enumerate(param_b_values):
-            img_row = 1 + i * 2
-            supp_row = img_row + 1
+            img_row = 1 + i * 3
+            title_row = img_row + 1
+            data_row = img_row + 2
             col_a = 1 + j * 2
             col_b = col_a + 1
 
-            # 图片行：两列合并为一个单元格
+            # 图片行：两列合并
             table.cell(img_row, col_a).merge(table.cell(img_row, col_b))
 
-            # 补充行：左右独立
+            # 标题行：两列独立，填固定标题
+            _set_cell_text(table.cell(title_row, col_a), "力值", bold=True, font_size=8)
+            _set_cell_text(table.cell(title_row, col_b), "长度", bold=True, font_size=8)
+
+            # 数据行：两列独立，填补充数据
             info = supplement_data.get((a_val, b_val), ("", ""))
             left_text, right_text = info
-            _set_cell_text(table.cell(supp_row, col_a), left_text, font_size=8)
-            _set_cell_text(table.cell(supp_row, col_b), right_text, font_size=8)
+            _set_cell_text(table.cell(data_row, col_a), left_text, font_size=8)
+            _set_cell_text(table.cell(data_row, col_b), right_text, font_size=8)
 
     # ---------------------------- 放置图片 ----------------------------
-    # 关键修正：数据区域起点
     data_origin_left = margin_lr + header_col_width
     data_origin_top = margin_tb + header_row_height
 
@@ -222,7 +205,6 @@ def generate_image_matrix_ppt(
         for j, b_val in enumerate(param_b_values):
             filename = filename_template.format(a=a_val, b=b_val)
             img_path = image_dir / filename
-
             if not img_path.exists():
                 print(f"⚠️ 图片不存在，跳过 — {img_path}")
                 continue
@@ -231,7 +213,6 @@ def generate_image_matrix_ppt(
                 orig_w, orig_h = im.size
             aspect = orig_w / orig_h
 
-            # 长边撑满 square_size
             if aspect >= 1:
                 disp_w = square_size
                 disp_h = square_size / aspect
@@ -239,13 +220,11 @@ def generate_image_matrix_ppt(
                 disp_h = square_size
                 disp_w = square_size * aspect
 
-            # 图片在图片区域（img_area_width × img_area_height）内居中
             offset_x = (img_area_width - disp_w) / 2
             offset_y = (img_area_height - disp_h) / 2
 
-            # 图片区域左上角在数据区中的位置
             block_left = j * img_area_width
-            block_top = i * two_row_height
+            block_top = i * three_row_height
 
             left = Inches(data_origin_left + block_left + offset_x)
             top = Inches(data_origin_top + block_top + offset_y)
