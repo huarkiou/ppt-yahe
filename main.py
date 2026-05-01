@@ -68,20 +68,15 @@ def _apply_table_style(table: Table):
         tblPr.remove(tableStyleId)
 
     # 2) 清除表格级别的所有填充
-    for fill_tag in [
-        "a:solidFill",
-        "a:gradFill",
-        "a:pattFill",
-        "a:noFill",
-        "a:grpFill",
-    ]:
+    fill_tags = ["a:solidFill", "a:gradFill", "a:pattFill", "a:noFill", "a:grpFill"]
+    for fill_tag in fill_tags:
         for el in tblPr.findall(qn(fill_tag)):
             tblPr.remove(el)
 
     # 3) 每个单元格：清填充 + 设细黑框线
     line_width = Pt(1)
-    fill_tags = ["a:solidFill", "a:gradFill", "a:pattFill", "a:noFill", "a:grpFill"]
 
+    ln_tags = ["a:lnB", "a:lnT", "a:lnL", "a:lnR"]
     for cell in table.iter_cells():
         tc = cell._tc
         tcPr = tc.get_or_add_tcPr()
@@ -92,12 +87,12 @@ def _apply_table_style(table: Table):
                 tcPr.remove(el)
 
         # 移除旧边框
-        for tag in ["a:lnB", "a:lnT", "a:lnL", "a:lnR"]:
+        for tag in ln_tags:
             for old in tcPr.findall(qn(tag)):
                 tcPr.remove(old)
 
         # 添加黑色细边框
-        for tag in ["a:lnB", "a:lnT", "a:lnL", "a:lnR"]:
+        for tag in ln_tags:
             ln = etree.SubElement(tcPr, qn(tag))
             ln.attrib["w"] = str(line_width)
             sf = etree.SubElement(ln, qn("a:solidFill"))
