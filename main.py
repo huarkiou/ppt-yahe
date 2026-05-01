@@ -139,8 +139,8 @@ def add_image_table_slide(
 
     slide = prs.slides.add_slide(prs.slide_layouts[6])
 
-    slide_width = prs.slide_width / 914400  # EMU → 英寸
-    slide_height = prs.slide_height / 914400  # EMU → 英寸
+    slide_width: float = prs.slide_width / Inches(1)
+    slide_height: float = prs.slide_height / Inches(1)  # ty:ignore[unsupported-operator]
 
     margin_lr = 0.0
     margin_tb = 0.3
@@ -296,8 +296,6 @@ def add_summary_table_slide(
     列：类别 | 参数 | 评判标准 | B1 | B2 | ...
     依赖：_set_cell_text(table.cell, text, bold, font_size) 已在外部定义。
     """
-    from pptx.util import Inches, Pt
-    from pptx.enum.text import PP_ALIGN
 
     n_rows = len(param_a_values)
     n_cols = len(param_b_values)
@@ -306,7 +304,7 @@ def add_summary_table_slide(
 
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide_width_emu = prs.slide_width  # 直接用 EMU，不引入魔数
-    slide_height_emu = prs.slide_height
+    slide_height_emu = prs.slide_height  # noqa: F841
 
     # ---- 幻灯片级可选标题 ----
     if title:
