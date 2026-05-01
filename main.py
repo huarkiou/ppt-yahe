@@ -253,20 +253,20 @@ def add_image_table_slide(
         table.rows[base + 2].height = Inches(data_row_height)  # 数据行
 
     # ---------------------------- 标题（使用 _set_merged_cell）----------------------------
-    _set_cell_text(table.cell(0, 0), top_left_label, bold=True, font_size=11)
+    _set_cell_text(table.cell(0, 0), top_left_label, bold=True, font_size=12)
 
     for j in range(n_cols):
         col_a = 1 + j * 2
         col_b = col_a + 1
         _set_merged_cell(
-            table, 0, col_a, 0, col_b, param_b_values[j], bold=True, font_size=11
+            table, 0, col_a, 0, col_b, param_b_values[j], bold=True, font_size=12
         )
 
     for i in range(n_rows):
         row_a = 1 + i * 3
         row_b = row_a + 2
         _set_merged_cell(
-            table, row_a, 0, row_b, 0, param_a_values[i], bold=True, font_size=11
+            table, row_a, 0, row_b, 0, param_a_values[i], bold=True, font_size=12
         )
 
     # ---------------------------- 合并单元格 & 填写内容 ----------------------------
@@ -282,14 +282,18 @@ def add_image_table_slide(
             table.cell(img_row, col_a).merge(table.cell(img_row, col_b))
 
             # 标题行：两列独立，填固定标题
-            _set_cell_text(table.cell(title_row, col_a), "力值", bold=True, font_size=8)
-            _set_cell_text(table.cell(title_row, col_b), "长度", bold=True, font_size=8)
+            _set_cell_text(
+                table.cell(title_row, col_a), "力值", bold=True, font_size=10
+            )
+            _set_cell_text(
+                table.cell(title_row, col_b), "长度", bold=True, font_size=10
+            )
 
             # 数据行：两列独立，填补充数据
             info = supplement_data.get((a_val, b_val), ("", ""))
             left_text, right_text = info
-            _set_cell_text(table.cell(data_row, col_a), left_text, font_size=8)
-            _set_cell_text(table.cell(data_row, col_b), right_text, font_size=8)
+            _set_cell_text(table.cell(data_row, col_a), left_text, font_size=10)
+            _set_cell_text(table.cell(data_row, col_b), right_text, font_size=10)
 
     # ---------------------------- 放置图片（利用表格列宽/行高定位）----------------------------
     for i, a_val in enumerate(param_a_values):
@@ -347,13 +351,9 @@ def add_summary_table_slide(
     criteria_col_width: float = 1.2,
     header_row_height: float = 0.5,
     data_row_height: float = 0.35,
-    title: str = "",
 ) -> None:
     """
-    追加一页汇总表，表格宽度占满幻灯片。
-    行：汇总表(合并) | 列标题 | 力值(n行) | 长度(n行) | 结论 | 备注
-    列：类别 | 参数 | 评判标准 | B1 | B2 | ...
-    依赖：_set_cell_text(table.cell, text, bold, font_size) 已在外部定义。
+    追加一页汇总表
     """
 
     n_rows = len(param_a_values)
@@ -365,25 +365,13 @@ def add_summary_table_slide(
     slide_width_emu = prs.slide_width  # 直接用 EMU，不引入魔数
     slide_height_emu = prs.slide_height  # noqa: F841
 
-    # ---- 幻灯片级可选标题 ----
-    if title:
-        title_box = slide.shapes.add_textbox(
-            Inches(0.3), Inches(0.15), slide_width_emu - Inches(0.6), Inches(0.4)
-        )
-        tf = title_box.text_frame
-        tf.text = title
-        p = tf.paragraphs[0]
-        p.font.size = Pt(16)
-        p.font.bold = True
-        p.alignment = PP_ALIGN.CENTER
-
     # ---- 表格占满幻灯片宽度 ----
     # 前3列固定英寸宽度，余下给数据列均分
     fixed = header_col_width + param_col_width + criteria_col_width
     total_table_inches = slide_width_emu / Inches(1)
     data_col_width = max(0, (total_table_inches - fixed) / n_cols) if n_cols else 0
 
-    table_top = Inches(0.7) if title else Inches(0.4)
+    table_top = Inches(0.4)
     table_height = Inches(
         data_row_height + header_row_height + (total_rows - 2) * data_row_height
     )
@@ -416,57 +404,57 @@ def add_summary_table_slide(
     _set_merged_cell(table, 0, 0, 0, total_cols - 1, "汇总表", bold=True, font_size=14)
 
     # ===================== 列标题行（第1行） =====================
-    _set_cell_text(table.cell(1, 0), "类别", bold=True, font_size=11)
-    _set_cell_text(table.cell(1, 1), "参数", bold=True, font_size=11)
-    _set_cell_text(table.cell(1, 2), "评判标准", bold=True, font_size=11)
+    _set_cell_text(table.cell(1, 0), "类别", bold=True, font_size=12)
+    _set_cell_text(table.cell(1, 1), "参数", bold=True, font_size=12)
+    _set_cell_text(table.cell(1, 2), "评判标准", bold=True, font_size=12)
     for j, b_val in enumerate(param_b_values):
-        _set_cell_text(table.cell(1, 3 + j), b_val, bold=True, font_size=11)
+        _set_cell_text(table.cell(1, 3 + j), b_val, bold=True, font_size=12)
 
     # ===================== 力值区域 (行 2 .. 1+n_rows) =====================
     force_start, force_end = 2, 1 + n_rows
     if n_rows > 1:
         _set_merged_cell(
-            table, force_start, 0, force_end, 0, "力值", bold=True, font_size=11
+            table, force_start, 0, force_end, 0, "力值", bold=True, font_size=12
         )
     else:
-        _set_cell_text(table.cell(force_start, 0), "力值", bold=True, font_size=11)
+        _set_cell_text(table.cell(force_start, 0), "力值", bold=True, font_size=12)
 
     for i, a_val in enumerate(param_a_values):
         row_idx = force_start + i
-        _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=11)
+        _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=12)
         _set_cell_text(table.cell(row_idx, 2), "", font_size=10)
         for j, b_val in enumerate(param_b_values):
             info = supplement_data.get((a_val, b_val), ("", ""))
-            _set_cell_text(table.cell(row_idx, 3 + j), info[0], font_size=10)
+            _set_cell_text(table.cell(row_idx, 3 + j), info[0], font_size=12)
 
     # ===================== 长度区域 (行 2+n_rows .. 1+n_rows*2) =====================
     length_start, length_end = 2 + n_rows, 1 + n_rows * 2
     if n_rows > 1:
         _set_merged_cell(
-            table, length_start, 0, length_end, 0, "长度", bold=True, font_size=11
+            table, length_start, 0, length_end, 0, "长度", bold=True, font_size=12
         )
     else:
-        _set_cell_text(table.cell(length_start, 0), "长度", bold=True, font_size=11)
+        _set_cell_text(table.cell(length_start, 0), "长度", bold=True, font_size=12)
 
     for i, a_val in enumerate(param_a_values):
         row_idx = length_start + i
-        _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=11)
-        _set_cell_text(table.cell(row_idx, 2), "", font_size=10)
+        _set_cell_text(table.cell(row_idx, 1), a_val, bold=True, font_size=12)
+        _set_cell_text(table.cell(row_idx, 2), "", font_size=12)
         for j, b_val in enumerate(param_b_values):
             info = supplement_data.get((a_val, b_val), ("", ""))
-            _set_cell_text(table.cell(row_idx, 3 + j), info[1], font_size=10)
+            _set_cell_text(table.cell(row_idx, 3 + j), info[1], font_size=12)
 
     # ===================== 结论 =====================
     conclusion_row = 2 + n_rows * 2
-    _set_cell_text(table.cell(conclusion_row, 0), "结论", bold=True, font_size=11)
+    _set_cell_text(table.cell(conclusion_row, 0), "结论", bold=True, font_size=12)
     _set_merged_cell(
-        table, conclusion_row, 1, conclusion_row, total_cols - 1, "", font_size=10
+        table, conclusion_row, 1, conclusion_row, total_cols - 1, "", font_size=12
     )
 
     # ===================== 备注 =====================
     remark_row = conclusion_row + 1
-    _set_cell_text(table.cell(remark_row, 0), "备注", bold=True, font_size=11)
-    _set_merged_cell(table, remark_row, 1, remark_row, total_cols - 1, "", font_size=10)
+    _set_cell_text(table.cell(remark_row, 0), "备注", bold=True, font_size=12)
+    _set_merged_cell(table, remark_row, 1, remark_row, total_cols - 1, "", font_size=12)
 
 
 if __name__ == "__main__":
