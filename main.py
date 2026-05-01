@@ -3,7 +3,7 @@ from pptx import Presentation, presentation
 from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.oxml.ns import qn
-from lxml import etree  # ty:ignore[unresolved-import]
+from lxml.html import etree
 from PIL import Image
 
 # PowerPoint 默认幻灯片尺寸（单位：英寸）
