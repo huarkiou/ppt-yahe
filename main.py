@@ -8,10 +8,6 @@ from pptx.oxml.ns import qn
 from lxml.html import etree
 from PIL import Image
 
-# PowerPoint 默认幻灯片尺寸（单位：英寸）
-DEFAULT_SLIDE_WIDTH_INCHES = 10.0
-DEFAULT_SLIDE_HEIGHT_INCHES = 7.5
-
 
 def main():
     IMAGE_DIR = r"testdata/images"
@@ -31,8 +27,6 @@ def main():
     SUPPLEMENT = _convert_supplement_to_str(SUPPLEMENT)
 
     prs = Presentation()
-    prs.slide_width = Inches(DEFAULT_SLIDE_WIDTH_INCHES)
-    prs.slide_height = Inches(DEFAULT_SLIDE_HEIGHT_INCHES)
 
     add_summary_table_slide(
         prs,

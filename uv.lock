@@ -133,8 +133,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pillow" },
-    { name = "python-pptx" },
+    { name = "pillow", specifier = ">=12.2" },
+    { name = "python-pptx", specifier = ">=1.0" },
 ]
 
 [[package]]
