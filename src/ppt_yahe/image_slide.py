@@ -34,6 +34,7 @@ def add_image_slide(
 
     slide: Slide = prs.slides.add_slide(prs.slide_layouts[6])
 
+    assert prs.slide_width is not None and prs.slide_height is not None
     slide_width: float = prs.slide_width / Inches(1)
     slide_height: float = prs.slide_height / Inches(1)
 
@@ -102,9 +103,7 @@ def add_image_slide(
     for j, section_id in enumerate(section_ids):
         col_a = 1 + j * 2
         col_b = col_a + 1
-        set_merged_cell(
-            table, 0, col_a, 0, col_b, section_id, bold=True, font_size=12
-        )
+        set_merged_cell(table, 0, col_a, 0, col_b, section_id, bold=True, font_size=12)
 
     for i, displacement in enumerate(displacement_levels):
         row_a = 1 + i * 3
@@ -123,12 +122,8 @@ def add_image_slide(
 
             table.cell(image_row, col_a).merge(table.cell(image_row, col_b))
 
-            set_cell_text(
-                table.cell(title_row, col_a), "力值", bold=True, font_size=10
-            )
-            set_cell_text(
-                table.cell(title_row, col_b), "长度", bold=True, font_size=10
-            )
+            set_cell_text(table.cell(title_row, col_a), "力值", bold=True, font_size=10)
+            set_cell_text(table.cell(title_row, col_b), "长度", bold=True, font_size=10)
 
             left_text, right_text = get_measurement_str(
                 measurement_data, displacement, section_id

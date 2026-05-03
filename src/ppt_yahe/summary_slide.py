@@ -31,6 +31,8 @@ def add_summary_slide(
     slide: Slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide_width_emu = prs.slide_width
     slide_height_emu = prs.slide_height
+    assert slide_width_emu is not None
+    assert slide_height_emu is not None
 
     fixed = header_col_width + param_col_width + criteria_col_width
     total_table_inches = slide_width_emu / Inches(1)
@@ -109,9 +111,7 @@ def add_summary_slide(
 
     remark_row = conclusion_row + 1
     set_cell_text(table.cell(remark_row, 0), "备注", bold=True, font_size=12)
-    set_merged_cell(
-        table, remark_row, 1, remark_row, total_cols - 1, "", font_size=12
-    )
+    set_merged_cell(table, remark_row, 1, remark_row, total_cols - 1, "", font_size=12)
 
     _add_comparison_chart(
         slide,
@@ -160,8 +160,8 @@ def _add_comparison_chart(
         Inches(chart_top_inch),
         Inches(chart_width_inch),
         Inches(chart_height_inch),
-        chart_data,
-    )
+        chart_data,  # ty:ignore[invalid-argument-type]
+    )  # ty:ignore[invalid-assignment]
 
     chart: Chart = chart_frame.chart
 
