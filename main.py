@@ -50,14 +50,7 @@ def main():
     )
 
     prs.save(OUTPUT_PPT)
-    print(f"✅ PPT 已保存: {OUTPUT_PPT}")
-
-
-def _convert_supplement_to_str(
-    data: dict[tuple[str, str], tuple[int | float, int | float]],
-) -> dict[tuple[str, str], tuple[str, str]]:
-    """将数值型补充数据转换为字符串格式（第2项前加 ±）"""
-    return {k: (str(v[0]), f"{v[1]}") for k, v in data.items()}
+    print(f"[OK] PPT 已保存: {OUTPUT_PPT}")
 
 
 def _get_supplement_str(
@@ -190,7 +183,7 @@ def _row_offset_inches(table: Table, row_idx: int) -> float:
 
 def add_image_table_slide(
     prs: presentation.Presentation,
-    image_dir: str,
+    image_dir: str | Path,
     param_a_values: list[str],
     param_b_values: list[str],
     filename_template: str = "{a}_{b}",
@@ -327,7 +320,7 @@ def add_image_table_slide(
                     img_path = candidate
                     break
             else:
-                print(f"⚠️ 跳过不存在的图片: {img_path}.[png|jpg]")
+                print(f"[WARN] 跳过不存在的图片: {img_path}.[png|jpg]")
                 continue
 
             with Image.open(img_path) as im:
@@ -391,8 +384,7 @@ def add_summary_table_slide(
     追加一页汇总表，并可在下方添加簇状柱形图
     """
     # ---------- 数据预处理：转成字符串供表格使用 ----------
-    str_supplement = {k: (str(v[0]), f"{v[1]}") for k, v in supplement_data.items()}
-    supplement_data_str = str_supplement  # 后面传递给表格部分使用
+    supplement_data_str = {k: (str(v[0]), f"{v[1]}") for k, v in supplement_data.items()}
     n_rows = len(param_a_values)
     n_cols = len(param_b_values)
     total_cols = 3 + n_cols
@@ -425,7 +417,7 @@ def add_summary_table_slide(
     for c in range(3, total_cols):
         table.columns[c].width = Inches(data_col_width)
     # 行高
-    table.rows[0].height = Inches(data_row_height * 1.2)
+    table.rows[0].height = Inches(data_row_height)
     table.rows[1].height = Inches(header_row_height)
     for r in range(2, total_rows):
         table.rows[r].height = Inches(data_row_height)
