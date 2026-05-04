@@ -33,7 +33,7 @@ def get_measurement_str(
     pair = measurement_data.get((displacement, section_id))
     if pair is None:
         return ("", "")
-    return (str(pair[0]), str(pair[1]))
+    return (f"{pair[0]:.2f}", f"{pair[1]:.2f}")
 
 
 def create_styled_table(

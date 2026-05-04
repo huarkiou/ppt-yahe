@@ -43,7 +43,7 @@ def build_summary_slide(
         layout: Visual and layout configuration.
     """
     cfg = layout or SummaryLayoutConfig()
-    measurement_data_str = {k: (str(v[0]), str(v[1])) for k, v in measurement_data.items()}
+    measurement_data_str = {k: (f"{v[0]:.2f}", f"{v[1]:.2f}") for k, v in measurement_data.items()}
     n_rows = len(displacement_levels)
     n_cols = len(section_ids)
     total_cols = 3 + n_cols
