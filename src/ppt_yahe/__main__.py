@@ -7,8 +7,7 @@ from pathlib import Path
 
 from pptx import Presentation
 
-from ppt_yahe.image_slide import add_image_slide
-from ppt_yahe.summary_slide import add_summary_slide
+from ppt_yahe.builder import build_image_slide, build_summary_slide
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -84,7 +83,7 @@ def main() -> None:
     for dataset in DATASETS:
         image_dir = args.image_dir if args.image_dir else dataset.image_dir
 
-        add_summary_slide(
+        build_summary_slide(
             prs,
             title=dataset.title,
             displacement_levels=dataset.displacement_levels,
@@ -92,7 +91,7 @@ def main() -> None:
             measurement_data=dataset.measurement_data,
         )
 
-        add_image_slide(
+        build_image_slide(
             prs,
             image_dir=image_dir,
             displacement_levels=dataset.displacement_levels,
@@ -100,7 +99,6 @@ def main() -> None:
             filename_template=dataset.filename_template,
             top_left_label=dataset.title,
             measurement_data=dataset.measurement_data,
-            supplement_row_ratio=0.30,
         )
 
     prs.save(args.output)
