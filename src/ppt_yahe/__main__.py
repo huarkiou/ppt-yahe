@@ -137,7 +137,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default="testdata/image_matrix.pptx",
+        default="testdata/output_report.pptx",
         help="Output PPTX file path",
     )
     args = parser.parse_args()
