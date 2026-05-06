@@ -125,13 +125,26 @@ def _populate_summary_table(
     cfg: SummaryLayoutConfig,
 ) -> None:
     """Fill all cells in the summary table."""
-    # --- title row ---
-    set_merged_cell(table, 0, 0, 0, total_cols - 1, title, bold=True, font_size=cfg.font_size_title)
+    # --- title / header rows ---
+    # Left 3 non-data columns: merge row 0 vertically with row 1
+    set_merged_cell(
+        table, 0, 0, 1, 0, "类别", bold=True, font_size=cfg.font_size_header
+    )
+    set_merged_cell(
+        table, 0, 1, 1, 1, "参数", bold=True, font_size=cfg.font_size_header
+    )
+    set_merged_cell(
+        table, 0, 2, 1, 2, "评判标准", bold=True, font_size=cfg.font_size_header
+    )
 
-    # --- header row ---
-    set_cell_text(table.cell(1, 0), "类别", bold=True, font_size=cfg.font_size_header)
-    set_cell_text(table.cell(1, 1), "参数", bold=True, font_size=cfg.font_size_header)
-    set_cell_text(table.cell(1, 2), "评判标准", bold=True, font_size=cfg.font_size_header)
+    # Data columns in row 0: merge horizontally for the title
+    if total_cols > 3:
+        set_merged_cell(
+            table, 0, 3, 0, total_cols - 1, title,
+            bold=True, font_size=cfg.font_size_title,
+        )
+
+    # Row 1 data column headers
     for j, section_id in enumerate(section_ids):
         set_cell_text(table.cell(1, 3 + j), section_id, bold=True, font_size=cfg.font_size_header)
 
@@ -244,10 +257,9 @@ def _add_comparison_chart(
 
     plot = chart.plots[0]
     plot.has_data_labels = True
-    data_labels = plot.data_labels
-    data_labels.show_value = True
-    data_labels.font.size = Pt(cfg.font_size_chart)
     for series in chart.series:
-        for point in series.points:
-            point.data_label.font.size = Pt(cfg.font_size_chart)
-            point.data_label.font.name = "微软雅黑"
+        series_data_labels = series.data_labels
+        series_data_labels.show_value = True
+        series_data_labels.number_format = "0.00"
+        series_data_labels.font.size = Pt(cfg.font_size_chart)
+        series_data_labels.font.name = "微软雅黑"

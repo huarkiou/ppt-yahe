@@ -46,7 +46,7 @@ DATASETS: list[Dataset] = [
         displacement_levels=["low", "mid", "high"],
         section_ids=["exp1", "exp2", "exp3", "exp4", "exp6", "exp7"],
         measurement_data={
-            ("low", "exp1"): (0.12, 0.01),
+            ("low", "exp1"): (0.12001, 0.01),
             ("low", "exp2"): (0.34, 0.02),
             ("low", "exp3"): (0.14, 0.03),
             ("low", "exp4"): (0.33, 0.04),
